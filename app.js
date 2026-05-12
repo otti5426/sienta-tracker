@@ -2,12 +2,75 @@
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').then(reg => {
-      console.log('SW registered', reg);
+      console.log('SW registered');
     }).catch(err => {
-      console.log('SW registration failed', err);
+      console.log('SW registration failed');
     });
   });
 }
+
+// --- Firebase Initialization ---
+const firebaseConfig = {
+  apiKey: "AIzaSyB3DS0hu-P7eEFESQGhTcuMURpO5rbhTTk",
+  authDomain: "sienta-tracker2.firebaseapp.com",
+  projectId: "sienta-tracker2",
+  storageBucket: "sienta-tracker2.firebasestorage.app",
+  messagingSenderId: "576622794850",
+  appId: "1:576622794850:web:666ab766cd3f2d33fa593b"
+};
+
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.firestore();
+const auth = firebase.auth();
+let currentUser = null;
+let unsubscribeSnapshot = null;
+
+// --- Auth Logic ---
+document.getElementById('btn-login').addEventListener('click', () => {
+  document.getElementById('login-loading').style.display = 'block';
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(err => {
+    console.error(err);
+    alert('ログインに失敗しました');
+    document.getElementById('login-loading').style.display = 'none';
+  });
+});
+
+document.getElementById('btn-logout').addEventListener('click', () => {
+  if (confirm('ログアウトしますか？')) auth.signOut();
+});
+
+auth.onAuthStateChanged(user => {
+  if (user) {
+    currentUser = user;
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    
+    // Subscribe to Firestore
+    if (unsubscribeSnapshot) unsubscribeSnapshot();
+    unsubscribeSnapshot = db.collection('users').doc(user.uid).onSnapshot(doc => {
+      if (doc.exists) {
+        state = doc.data();
+        localStorage.setItem('sienta_app_state', JSON.stringify(state));
+        updateUI();
+      } else {
+        // First login -> migrate existing local data to cloud
+        saveState();
+      }
+    });
+  } else {
+    currentUser = null;
+    document.getElementById('login-overlay').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('login-loading').style.display = 'none';
+    if (unsubscribeSnapshot) {
+      unsubscribeSnapshot();
+      unsubscribeSnapshot = null;
+    }
+  }
+});
 
 // --- State Management ---
 let state = JSON.parse(localStorage.getItem('sienta_app_state')) || {
@@ -36,6 +99,9 @@ let mpgChart = null;
 
 function saveState() {
   localStorage.setItem('sienta_app_state', JSON.stringify(state));
+  if (currentUser) {
+    db.collection('users').doc(currentUser.uid).set(state).catch(err => console.error('Error saving state:', err));
+  }
 }
 
 function getActiveVehicle() {

@@ -8,13 +8,31 @@
   <link rel="manifest" href="manifest.json">
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <meta name="theme-color" content="#7A8B76">
 </head>
 <body>
-  <div id="app">
+  <!-- Login Overlay -->
+  <div id="login-overlay" style="display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--color-bg); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center;">
+    <div style="background: white; padding: 40px; border-radius: var(--radius-lg); box-shadow: var(--shadow-float); max-width: 400px; width: 100%;">
+      <i data-lucide="car" style="width: 64px; height: 64px; color: var(--color-khaki); margin-bottom: 24px;"></i>
+      <h1 style="color: var(--color-khaki-dark); margin-bottom: 8px;">SIENTA Tracker</h1>
+      <p style="color: var(--color-text-light); margin-bottom: 32px; font-size: 0.875rem;">クラウド連携でデータを安全に保存し、<br>複数デバイスで同期します。</p>
+      <button id="btn-login" class="btn" style="width: 100%; background: white; color: var(--color-text); border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; gap: 12px; font-weight: 600;">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style="width: 18px; height: 18px;">
+        Google でログイン
+      </button>
+      <div id="login-loading" style="display: none; margin-top: 20px; color: var(--color-khaki);">読み込み中...</div>
+    </div>
+  </div>
+
+  <div id="app" style="display: none;">
     <header>
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
         <div class="header-title">
@@ -287,8 +305,12 @@
 
         <div class="card">
           <h2 style="margin-bottom: 12px; color: var(--color-danger);">データ管理</h2>
-          <button id="clear-all-btn" style="color: white; background: var(--color-danger); border: none; padding: 8px 16px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600;">全リセット</button>
+          <div style="display: flex; gap: 12px;">
+            <button id="btn-logout" style="flex: 1; color: var(--color-text); background: white; border: 1px solid #ddd; padding: 8px 16px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600;">ログアウト</button>
+            <button id="clear-all-btn" style="flex: 1; color: white; background: var(--color-danger); border: none; padding: 8px 16px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600;">全リセット</button>
+          </div>
         </div>
+
       </div>
     </main>
 
