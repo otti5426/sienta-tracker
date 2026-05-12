@@ -31,11 +31,18 @@ let unsubscribeSnapshot = null;
 document.getElementById('btn-login').addEventListener('click', () => {
   document.getElementById('login-loading').style.display = 'block';
   const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider).catch(err => {
+  // Mobile friendly login
+  auth.signInWithRedirect(provider).catch(err => {
     console.error(err);
     alert('ログインに失敗しました');
     document.getElementById('login-loading').style.display = 'none';
   });
+});
+
+// Handle redirect result on load
+auth.getRedirectResult().catch(err => {
+  console.error(err);
+  alert('ログインエラーが発生しました');
 });
 
 document.getElementById('btn-logout').addEventListener('click', () => {
