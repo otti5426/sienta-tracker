@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SIENTA Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.json">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <meta name="theme-color" content="#7A8B76">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+        <div class="header-title">
+          <i data-lucide="car" style="width: 32px; height: 32px;"></i>
+          <div>
+            <div id="display-car-name">--</div>
+            <div class="header-subtitle" id="display-car-sub">--</div>
+          </div>
+        </div>
+        <select id="vehicle-switcher" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; outline: none; cursor: pointer;">
+        </select>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <div class="sidebar-item active" data-target="view-dashboard">
+          <i data-lucide="layout-dashboard"></i> <span>ダッシュボード</span>
+        </div>
+        <div class="sidebar-item" data-target="view-add">
+          <i data-lucide="plus-circle"></i> <span>給油記録</span>
+        </div>
+        <div class="sidebar-item" data-target="view-maintenance">
+          <i data-lucide="wrench"></i> <span>メンテナンス</span>
+        </div>
+        <div class="sidebar-item" data-target="view-history">
+          <i data-lucide="list"></i> <span>履歴</span>
+        </div>
+        <div class="sidebar-item" data-target="view-settings">
+          <i data-lucide="settings"></i> <span>設定・連携</span>
+        </div>
+      </nav>
+    </header>
+
+    <main>
+      <div id="maintenance-alert-container"></div>
+      <div id="reward-banner-container"></div>
+
+      <!-- Dashboard View -->
+      <div id="view-dashboard" class="view active">
+        <div class="dashboard-grid">
+          <!-- Eco Rank Badge -->
+          <div class="card span-2" style="background: linear-gradient(135deg, #fff, #f4f6f4); display: flex; align-items: center; justify-content: space-between; padding: 20px;">
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div id="eco-rank-icon" style="font-size: 3rem;">🌱</div>
+              <div>
+                <div style="font-size: 0.75rem; font-weight: 700; color: var(--color-text-light);">CURRENT ECO RANK</div>
+                <div id="eco-rank-name" style="font-size: 1.5rem; font-weight: 800; color: var(--color-khaki-dark);">ECO BEGINNER</div>
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 0.75rem; color: var(--color-text-light);">総合平均</div>
+              <div style="font-size: 1.25rem; font-weight: 700;"><span id="avg-mpg-summary">--.-</span> <small>km/L</small></div>
+            </div>
+          </div>
+
+          <div class="card span-2" style="background: white; position: relative; overflow: hidden;">
+            <div class="card-title"><i data-lucide="gauge"></i> 燃費推移</div>
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+              <span class="stat-value" id="latest-mpg">--.-</span>
+              <span class="stat-unit">km/L</span>
+            </div>
+            <div style="margin-top: 12px; font-size: 0.875rem; color: var(--color-text-light);">
+              前回比: <span id="mpg-diff">--</span> | 累積平均: <span id="avg-mpg">--.-</span> km/L
+            </div>
+            <div style="margin-top: 20px; height: 120px;">
+              <canvas id="mpgChart"></canvas>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title"><i data-lucide="zap"></i> 推定航続距離</div>
+            <div style="display: flex; align-items: baseline; gap: 4px;">
+              <span class="stat-value" style="font-size: 2rem; color: var(--color-accent);" id="predicted-range">--</span>
+              <span class="stat-unit">km</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title"><i data-lucide="droplets"></i> 最終洗車</div>
+            <div style="display: flex; align-items: baseline; gap: 4px;">
+              <span class="stat-value" style="font-size: 2rem; color: #4fc3f7;" id="last-wash-days">--</span>
+              <span class="stat-unit">日前</span>
+            </div>
+          </div>
+
+          <div class="card span-2">
+            <div class="card-title"><i data-lucide="trending-up"></i> ハイブリッド回収進捗</div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
+              <div>
+                <div style="font-size: 0.875rem; color: var(--color-text-light);">回収済み</div>
+                <div style="font-size: 1.75rem; font-weight: 800; color: #856404;" id="recovered-amount">¥0</div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 0.875rem; color: var(--color-text-light);">目標: <span id="target-amount">¥--</span></div>
+                <div style="font-size: 1.25rem; font-weight: 700; color: var(--color-khaki-dark);" id="recovery-percent">0%</div>
+              </div>
+            </div>
+            <div class="progress-container">
+              <div class="progress-bar" id="recovery-progress" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title"><i data-lucide="map-pin"></i> 総走行距離</div>
+            <span class="stat-value" style="font-size: 1.75rem;" id="total-distance">0</span>
+            <span class="stat-unit">km</span>
+          </div>
+          
+          <div class="card">
+            <div class="card-title"><i data-lucide="calendar"></i> 次回オイル交換</div>
+            <div style="display: flex; align-items: baseline; gap: 4px;">
+              <span class="stat-value" style="font-size: 1.75rem;" id="next-oil-change">--</span>
+              <span class="stat-unit">km</span>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--color-text-light); margin-top: 4px;">
+              残り: <span id="oil-remaining">--</span> km
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Log View -->
+      <div id="view-add" class="view">
+        <div class="card">
+          <h2 style="margin-bottom: 24px; color: var(--color-khaki-dark);">給油記録を入力</h2>
+          <form id="fuel-form" class="form-grid">
+            <div class="form-group">
+              <label class="form-label">日付</label>
+              <input type="date" id="input-date" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">総走行距離 (km)</label>
+              <input type="number" step="0.1" id="input-odo" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">給油量 (L)</label>
+              <input type="number" step="0.01" id="input-liters" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">金額 (円)</label>
+              <input type="number" id="input-price" class="form-input" required>
+            </div>
+            <div class="form-group form-span-2" style="display: flex; gap: 24px; background: var(--color-bg); padding: 12px; border-radius: var(--radius-sm);">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="input-full" checked>
+                <label for="input-full">満タン</label>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="input-winter">
+                <label for="input-winter">冬用タイヤ</label>
+              </div>
+            </div>
+            <div class="form-span-2">
+              <button type="submit" class="btn" style="width: 100%;">記録を保存</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Maintenance View -->
+      <div id="view-maintenance" class="view">
+        <div class="card">
+          <h2 style="margin-bottom: 24px; color: var(--color-khaki-dark);">メンテナンス記録</h2>
+          <form id="maintenance-form" class="form-grid">
+            <div class="form-group">
+              <label class="form-label">作業内容</label>
+              <select id="maint-category" class="form-input">
+                <option value="wash">洗車</option>
+                <option value="tire">タイヤ交換/回転</option>
+                <option value="inspection">点検/整備</option>
+                <option value="other">その他</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">日付</label>
+              <input type="date" id="maint-date" class="form-input" required>
+            </div>
+            <div class="form-group form-span-2">
+              <label class="form-label">メモ</label>
+              <input type="text" id="maint-note" class="form-input" placeholder="例: 手洗い洗車、撥水コート">
+            </div>
+            <div class="form-span-2">
+              <button type="submit" class="btn" style="width: 100%;">メンテナンスを記録</button>
+            </div>
+          </form>
+        </div>
+        <div class="card">
+          <h2 style="margin-bottom: 16px; color: var(--color-khaki-dark);">作業履歴</h2>
+          <div id="maintenance-list"></div>
+        </div>
+      </div>
+
+      <!-- History View -->
+      <div id="view-history" class="view">
+        <div class="card">
+          <h2 style="margin-bottom: 24px; color: var(--color-khaki-dark);">給油履歴</h2>
+          <div id="history-list"></div>
+        </div>
+      </div>
+
+      <!-- Settings View -->
+      <div id="view-settings" class="view">
+        <div class="card">
+          <h2 style="margin-bottom: 24px; color: var(--color-khaki-dark);">車両設定</h2>
+          <form id="settings-form" class="form-grid">
+            <div class="form-group">
+              <label class="form-label">車両名</label>
+              <input type="text" id="setting-car-name" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">サブ名</label>
+              <input type="text" id="setting-car-sub" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">イメージカラー</label>
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <input type="color" id="setting-theme-color" class="form-input" style="padding: 2px; width: 60px; height: 48px; border: none; cursor: pointer;">
+                <div style="display: flex; gap: 6px;" id="theme-presets">
+                  <div class="color-preset" style="background: #7A8B76;" data-color="#7A8B76"></div>
+                  <div class="color-preset" style="background: #C4A484;" data-color="#C4A484"></div>
+                  <div class="color-preset" style="background: #2C3E50;" data-color="#2C3E50"></div>
+                  <div class="color-preset" style="background: #E74C3C;" data-color="#E74C3C"></div>
+                  <div class="color-preset" style="background: #F1C40F;" data-color="#F1C40F"></div>
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">ベースライン燃費 (km/L)</label>
+              <input type="number" step="0.1" id="setting-base-mpg" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">ハイブリッド差額目標 (円)</label>
+              <input type="number" id="setting-target" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">ガソリン単価想定 (円/L)</label>
+              <input type="number" id="setting-gas-price" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">燃料タンク容量 (L)</label>
+              <input type="number" id="setting-tank-capacity" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">オイル交換間隔 (km)</label>
+              <input type="number" id="setting-oil-interval" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">最終オイル交換距離 (km)</label>
+              <input type="number" id="setting-last-oil" class="form-input" required>
+            </div>
+            <div class="form-span-2">
+              <button type="submit" class="btn" style="width: 100%;">設定を保存</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2 style="margin-bottom: 24px; color: var(--color-khaki-dark);">データ連携 (CSV)</h2>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <button id="export-csv-btn" class="btn" style="background: white; color: var(--color-text); border: 1px solid #ddd; font-size: 0.875rem;">CSVエクスポート</button>
+            <button id="import-csv-trigger" class="btn" style="background: white; color: var(--color-text); border: 1px solid #ddd; font-size: 0.875rem;">CSVインポート</button>
+          </div>
+          <input type="file" id="import-csv-file" style="display: none;" accept=".csv">
+        </div>
+
+        <div class="card">
+          <h2 style="margin-bottom: 24px; color: var(--color-khaki-dark);">ガレージ管理</h2>
+          <div id="garage-list" style="margin-bottom: 24px;"></div>
+          <button id="add-vehicle-btn" class="btn" style="background: white; color: var(--color-khaki); border: 1px solid var(--color-khaki);">新しい車両を追加</button>
+        </div>
+
+        <div class="card">
+          <h2 style="margin-bottom: 12px; color: var(--color-danger);">データ管理</h2>
+          <button id="clear-all-btn" style="color: white; background: var(--color-danger); border: none; padding: 8px 16px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600;">全リセット</button>
+        </div>
+      </div>
+    </main>
+
+    <nav class="bottom-nav">
+      <div class="nav-item active" data-target="view-dashboard"><i data-lucide="layout-dashboard"></i><span>ホーム</span></div>
+      <div class="nav-item" data-target="view-add"><i data-lucide="plus-circle"></i><span>記録</span></div>
+      <div class="nav-item" data-target="view-maintenance"><i data-lucide="wrench"></i><span>整備</span></div>
+      <div class="nav-item" data-target="view-history"><i data-lucide="list"></i><span>履歴</span></div>
+      <div class="nav-item" data-target="view-settings"><i data-lucide="settings"></i><span>設定</span></div>
+    </nav>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
