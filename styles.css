@@ -70,6 +70,11 @@ header {
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
+@media (max-width: 480px) {
+  .header-subtitle {
+    display: none;
+  }
+}
 
 main {
   flex: 1;
@@ -154,6 +159,23 @@ main {
   }
 }
 
+/* Hide sidebar nav on mobile */
+@media (max-width: 767px) {
+  .sidebar-nav {
+    display: none;
+  }
+  header {
+    padding: 16px 20px;
+  }
+  main {
+    padding: 16px;
+    padding-bottom: 120px;
+  }
+  .stat-value {
+    font-size: 2rem;
+  }
+}
+
 /* Mobile Nav (Visible only on mobile) */
 .bottom-nav {
   position: fixed;
@@ -191,13 +213,36 @@ main {
   background: rgba(122, 139, 118, 0.1);
 }
 
+.eco-badge {
+  background: linear-gradient(135deg, #fff, #f4f6f4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+}
+@media (max-width: 480px) {
+  .eco-badge {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .eco-badge div:last-child {
+    text-align: left !important;
+  }
+}
+
 /* Cards */
 .card {
   background: var(--color-surface);
   border-radius: var(--radius-md);
-  padding: 24px;
+  padding: 20px;
   margin-bottom: 16px;
   box-shadow: var(--shadow-md);
+}
+@media (min-width: 768px) {
+  .card {
+    padding: 24px;
+  }
 }
 
 .card-title {
@@ -213,10 +258,11 @@ main {
 }
 
 .stat-value {
-  font-size: 2.5rem;
+  font-size: 2.25rem;
   font-weight: 800;
   color: var(--color-khaki-dark);
   line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
 .stat-unit {
