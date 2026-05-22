@@ -29,6 +29,10 @@ let unsubscribeSnapshot = null;
 
 // --- Auth Logic ---
 document.getElementById('btn-login').addEventListener('click', () => {
+  if (window.location.protocol === 'file:') {
+    alert('【重要】パソコン内のファイル（file://）からはセキュリティの都合上ログインできません。\\n公開URL（ https://otti5426.github.io/sienta-tracker/ ）から開いてください。');
+    return;
+  }
   document.getElementById('login-loading').style.display = 'block';
   const provider = new firebase.auth.GoogleAuthProvider();
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -36,13 +40,13 @@ document.getElementById('btn-login').addEventListener('click', () => {
   if (isMobile) {
     auth.signInWithRedirect(provider).catch(err => {
       console.error(err);
-      alert('ログインに失敗しました');
+      alert('ログインに失敗しました: ' + err.message);
       document.getElementById('login-loading').style.display = 'none';
     });
   } else {
     auth.signInWithPopup(provider).catch(err => {
       console.error(err);
-      alert('ログインに失敗しました');
+      alert('ログインに失敗しました: ' + err.message);
       document.getElementById('login-loading').style.display = 'none';
     });
   }
