@@ -76,7 +76,7 @@ auth.onAuthStateChanged(user => {
   if (user) {
     currentUser = user;
     document.getElementById('login-overlay').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
+    document.getElementById('app').style.display = 'flex';
     
     // Subscribe to Firestore
     if (unsubscribeSnapshot) unsubscribeSnapshot();
