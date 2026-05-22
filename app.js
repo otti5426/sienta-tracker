@@ -31,18 +31,27 @@ let unsubscribeSnapshot = null;
 document.getElementById('btn-login').addEventListener('click', () => {
   document.getElementById('login-loading').style.display = 'block';
   const provider = new firebase.auth.GoogleAuthProvider();
-  // Mobile friendly login
-  auth.signInWithRedirect(provider).catch(err => {
-    console.error(err);
-    alert('ログインに失敗しました');
-    document.getElementById('login-loading').style.display = 'none';
-  });
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  
+  if (isMobile) {
+    auth.signInWithRedirect(provider).catch(err => {
+      console.error(err);
+      alert('ログインに失敗しました');
+      document.getElementById('login-loading').style.display = 'none';
+    });
+  } else {
+    auth.signInWithPopup(provider).catch(err => {
+      console.error(err);
+      alert('ログインに失敗しました');
+      document.getElementById('login-loading').style.display = 'none';
+    });
+  }
 });
 
-// Handle redirect result on load
+// Handle redirect result on load (for mobile)
 auth.getRedirectResult().catch(err => {
   console.error(err);
-  alert('ログインエラーが発生しました');
+  // Optional: alert('ログインエラーが発生しました');
 });
 
 document.getElementById('btn-logout').addEventListener('click', () => {
