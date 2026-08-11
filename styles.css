@@ -609,12 +609,15 @@ main {
   color: var(--color-text);
   box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
 }
-/* iOS renders date/time inputs as native controls that can ignore the box
-   model unless appearance is reset, and their own internal layout needs
-   less horizontal padding than a text field to stay inside the same width. */
+/* iOS Safari's <input type="date"> is a native control whose internal
+   layout largely ignores author CSS (appearance:none included) and wants
+   more width than the field it's placed in. width:100% alone doesn't cap
+   it on iOS — max-width does, and is the standard workaround for this. */
 input[type="date"] {
   -webkit-appearance: none;
   appearance: none;
+  width: 100%;
+  max-width: 100%;
   padding-left: 12px;
   padding-right: 12px;
 }
