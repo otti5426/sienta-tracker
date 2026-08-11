@@ -303,6 +303,39 @@ document.getElementById('clear-all-btn').addEventListener('click', () => {
   if(confirm('初期化しますか？')) { localStorage.clear(); location.reload(); }
 });
 
+// --- Full State Backup (for moving data between devices, no cloud) ---
+document.getElementById('export-backup-btn').addEventListener('click', () => {
+  const json = JSON.stringify(state, null, 2);
+  const today = new Date().toISOString().slice(0, 10);
+  downloadFile(json, `SIENTA_Tracker_バックアップ_${today}.json`, 'application/json');
+});
+document.getElementById('import-backup-trigger').addEventListener('click', () => { document.getElementById('import-backup-file').click(); });
+document.getElementById('import-backup-file').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    let data;
+    try {
+      data = JSON.parse(event.target.result);
+    } catch (err) {
+      alert('ファイルを読み込めませんでした（JSON形式ではありません）');
+      return;
+    }
+    if (!data || !Array.isArray(data.vehicles) || data.vehicles.length === 0) {
+      alert('バックアップファイルの形式が正しくありません');
+      return;
+    }
+    if (confirm('この端末の現在のデータは上書きされます。読み込みますか？')) {
+      state = data;
+      saveState();
+      updateUI();
+      alert('復元しました');
+    }
+  };
+  reader.readAsText(file);
+});
+
 // --- CSV Features ---
 const CSV_HEADER_JP = "日付,走行距離(km),給油量(L),金額(円),満タンフラグ(1:はい/0:いいえ),冬タイヤフラグ(1:はい/0:いいえ)";
 document.getElementById('export-csv-btn').addEventListener('click', () => {
@@ -422,6 +455,63 @@ function computeMpg(logs) {
     }
     return { ...l, mpg };
   });
+}
+
+// --- Yearly Summary ---
+// 走行距離・平均燃費は、給油記録の区間(前回オド〜今回オド)を「今回の給油日の年」に
+// 丸ごと計上する（年をまたぐ区間の厳密な日割りはしない）。ただし最初の給油はオド
+// メーターの基準点なので区間には含まれない一方、その時払った金額は実際の出費なので
+// ガソリン代の集計には別途含める。
+function computeYearlySummary(logs, maintenance) {
+  const years = {};
+  const get = (y) => (years[y] || (years[y] = { dist: 0, intervalLiters: 0, gasCost: 0, maintCost: 0 }));
+  for (let i = 1; i < logs.length; i++) {
+    const y = get(logs[i].date.slice(0, 4));
+    y.dist += logs[i].odo - logs[i - 1].odo;
+    y.intervalLiters += logs[i].liters;
+  }
+  logs.forEach(l => { get(l.date.slice(0, 4)).gasCost += l.price; });
+  (maintenance || []).forEach(m => {
+    get(m.date.slice(0, 4)).maintCost += (m.price || 0);
+  });
+  return Object.keys(years).sort().reverse().map(y => {
+    const d = years[y];
+    return {
+      year: y, dist: d.dist, gasCost: d.gasCost, maintCost: d.maintCost,
+      avgMpg: d.intervalLiters > 0 ? d.dist / d.intervalLiters : null,
+      total: d.gasCost + d.maintCost,
+      _intervalLiters: d.intervalLiters,
+    };
+  });
+}
+
+function renderYearlySummary() {
+  const v = getActiveVehicle();
+  const container = document.getElementById('yearly-summary');
+  const rows = computeYearlySummary(v.logs, v.maintenance);
+  if (rows.length === 0) { container.innerHTML = '<p style="text-align:center;padding:20px;color:#999;">記録なし</p>'; return; }
+  let html = '<table class="summary-table"><thead><tr><th>年</th><th>走行距離</th><th>平均燃費</th><th>ガソリン代</th><th>整備費</th><th>合計</th></tr></thead><tbody>';
+  let sumDist = 0, sumLiters = 0, sumGas = 0, sumMaint = 0;
+  rows.forEach(r => {
+    sumDist += r.dist; sumLiters += r._intervalLiters; sumGas += r.gasCost; sumMaint += r.maintCost;
+    html += `<tr class="summary-year-row">
+      <td>${r.year}</td>
+      <td>${r.dist.toLocaleString()} km</td>
+      <td>${r.avgMpg !== null ? r.avgMpg.toFixed(1) + ' km/L' : '--'}</td>
+      <td>¥${r.gasCost.toLocaleString()}</td>
+      <td>${r.maintCost > 0 ? '¥' + r.maintCost.toLocaleString() : '-'}</td>
+      <td>¥${r.total.toLocaleString()}</td>
+    </tr>`;
+  });
+  html += `</tbody><tfoot><tr>
+    <td>合計</td>
+    <td>${sumDist.toLocaleString()} km</td>
+    <td>${sumLiters > 0 ? (sumDist / sumLiters).toFixed(1) + ' km/L' : '--'}</td>
+    <td>¥${sumGas.toLocaleString()}</td>
+    <td>${sumMaint > 0 ? '¥' + sumMaint.toLocaleString() : '-'}</td>
+    <td>¥${(sumGas + sumMaint).toLocaleString()}</td>
+  </tr></tfoot></table>`;
+  container.innerHTML = html;
 }
 
 // --- Eco Rank Logic ---
@@ -572,6 +662,7 @@ function renderRewards(recovered, target) {
 }
 
 function renderHistory() {
+  renderYearlySummary();
   const v = getActiveVehicle();
   const container = document.getElementById('history-list');
   if (v.logs.length === 0) { container.innerHTML = '<p style="text-align:center;padding:40px;color:#999;">記録なし</p>'; return; }

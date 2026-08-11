@@ -47,6 +47,7 @@ header {
   background-color: var(--color-khaki);
   color: white;
   padding: 24px 20px;
+  padding-top: max(24px, env(safe-area-inset-top));
   border-bottom-left-radius: var(--radius-lg);
   border-bottom-right-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
@@ -110,6 +111,8 @@ main {
     border-radius: 0;
     position: sticky;
     padding: 40px 24px;
+    padding-top: max(40px, env(safe-area-inset-top));
+    padding-left: max(24px, env(safe-area-inset-left));
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
@@ -166,10 +169,13 @@ main {
   }
   header {
     padding: 16px 20px;
+    padding-top: max(16px, env(safe-area-inset-top));
   }
   main {
     padding: 16px;
     padding-bottom: 120px;
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
   }
   .stat-value {
     font-size: 2rem;
@@ -334,6 +340,43 @@ main {
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 700;
+}
+
+/* Yearly Summary Table */
+.summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+.summary-table th, .summary-table td {
+  text-align: right;
+  padding: 8px 10px;
+}
+.summary-table th:first-child, .summary-table td:first-child {
+  text-align: left;
+}
+.summary-table thead th {
+  color: var(--color-text-light);
+  font-weight: 700;
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 2px solid var(--color-bg);
+}
+.summary-table tbody td {
+  border-bottom: 1px solid #f0f0f0;
+}
+.summary-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.summary-table tbody tr.summary-year-row {
+  font-weight: 700;
+}
+.summary-table tfoot td {
+  font-weight: 800;
+  border-top: 2px solid var(--color-bg);
+  color: var(--color-khaki-dark);
 }
 
 /* History List */

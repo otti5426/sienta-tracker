@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>SIENTA Tracker</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="manifest" href="manifest.json">
@@ -236,6 +236,10 @@
       <!-- History View -->
       <div id="view-history" class="view">
         <div class="card">
+          <h2 style="margin-bottom: 16px; color: var(--color-khaki-dark);">年別サマリー</h2>
+          <div id="yearly-summary" style="overflow-x: auto;"></div>
+        </div>
+        <div class="card">
           <h2 style="margin-bottom: 24px; color: var(--color-khaki-dark);">給油履歴</h2>
           <div id="history-list"></div>
         </div>
@@ -304,6 +308,18 @@
             <button id="import-csv-trigger" class="btn" style="background: white; color: var(--color-text); border: 1px solid #ddd; font-size: 0.875rem;">CSVインポート</button>
           </div>
           <input type="file" id="import-csv-file" style="display: none;" accept=".csv">
+        </div>
+
+        <div class="card">
+          <h2 style="margin-bottom: 8px; color: var(--color-khaki-dark);">全データバックアップ</h2>
+          <p style="font-size: 0.8125rem; color: var(--color-text-light); margin-bottom: 16px;">
+            車両・設定・給油記録・メンテナンス記録をまるごと1ファイルに。他の端末に同じデータを入れたい時はここから書き出して、あちらの端末で読み込んでください（読み込むとその端末のデータは上書きされます）。
+          </p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <button id="export-backup-btn" class="btn" style="background: white; color: var(--color-text); border: 1px solid #ddd; font-size: 0.875rem;">バックアップ書き出し</button>
+            <button id="import-backup-trigger" class="btn" style="background: white; color: var(--color-text); border: 1px solid #ddd; font-size: 0.875rem;">バックアップ読み込み</button>
+          </div>
+          <input type="file" id="import-backup-file" style="display: none;" accept=".json">
         </div>
 
         <div class="card">
