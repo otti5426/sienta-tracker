@@ -576,6 +576,11 @@ main {
 
 .form-group {
   margin-bottom: 20px;
+  /* Grid items default to min-width:auto, so a <input type="date">'s native
+     intrinsic minimum width (locale-dependent, often 130px+) forces the
+     1fr track wider than the card, overflowing it. min-width:0 lets the
+     track (and this cell's content) actually shrink to fit. */
+  min-width: 0;
 }
 .form-label {
   display: block;
@@ -589,6 +594,7 @@ main {
 }
 .form-input {
   width: 100%;
+  min-width: 0;
   padding: 14px 18px;
   border: 1px solid rgba(122, 139, 118, 0.2);
   border-radius: var(--radius-md);

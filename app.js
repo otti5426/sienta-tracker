@@ -514,6 +514,77 @@ function renderYearlySummary() {
   container.innerHTML = html;
 }
 
+// --- Seasonal / Tire Analysis ---
+// 区間燃費(computeMpgのmpg)を、その区間を締めた給油の冬タイヤフラグで振り分ける。
+function computeSeasonalComparison(logs) {
+  const processed = computeMpg(logs);
+  const winter = [], summer = [];
+  processed.forEach(p => {
+    if (p.mpg === null) return;
+    (p.isWinter ? winter : summer).push(p.mpg);
+  });
+  const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+  return {
+    winterAvg: avg(winter), winterCount: winter.length,
+    summerAvg: avg(summer), summerCount: summer.length,
+  };
+}
+
+// 区間燃費を、その区間を締めた給油の月(1〜12月、年をまたいで集約)ごとに平均する。
+function computeMonthlyAverage(logs) {
+  const processed = computeMpg(logs);
+  const months = Array.from({ length: 12 }, () => []);
+  processed.forEach(p => {
+    if (p.mpg === null) return;
+    months[parseInt(p.date.slice(5, 7), 10) - 1].push(p.mpg);
+  });
+  return months.map((arr, i) => ({
+    month: i + 1,
+    avg: arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null,
+    count: arr.length,
+  }));
+}
+
+let monthlyChart = null;
+function renderSeasonalAnalysis() {
+  const v = getActiveVehicle();
+  const seasonal = computeSeasonalComparison(v.logs);
+  const hasData = seasonal.winterCount + seasonal.summerCount > 0;
+  document.getElementById('seasonal-empty').style.display = hasData ? 'none' : 'block';
+  document.getElementById('seasonal-content').style.display = hasData ? 'block' : 'none';
+  if (!hasData) { if (monthlyChart) { monthlyChart.destroy(); monthlyChart = null; } return; }
+
+  document.getElementById('winter-avg-mpg').textContent = seasonal.winterAvg !== null ? seasonal.winterAvg.toFixed(1) : '--.-';
+  document.getElementById('winter-count').textContent = seasonal.winterCount;
+  document.getElementById('summer-avg-mpg').textContent = seasonal.summerAvg !== null ? seasonal.summerAvg.toFixed(1) : '--.-';
+  document.getElementById('summer-count').textContent = seasonal.summerCount;
+
+  const monthly = computeMonthlyAverage(v.logs);
+  const ctx = document.getElementById('monthlyChart').getContext('2d');
+  if (monthlyChart) monthlyChart.destroy();
+  const color = v.themeColor || '#7A8B76';
+  monthlyChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: monthly.map(m => m.month + '月'),
+      datasets: [{
+        label: '平均燃費 (km/L)',
+        data: monthly.map(m => m.avg),
+        backgroundColor: monthly.map(m => m.avg !== null ? color : '#e0e5df'),
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => ctx.parsed.y !== null ? ctx.parsed.y.toFixed(1) + ' km/L' : 'データなし' } }
+      },
+      scales: { y: { display: false, beginAtZero: true }, x: { grid: { display: false } } }
+    }
+  });
+}
+
 // --- Eco Rank Logic ---
 const ECO_RANKS = [
   { threshold: 0, name: "ECO BEGINNER", icon: "🌱", color: "#6b726a" },
@@ -663,6 +734,7 @@ function renderRewards(recovered, target) {
 
 function renderHistory() {
   renderYearlySummary();
+  renderSeasonalAnalysis();
   const v = getActiveVehicle();
   const container = document.getElementById('history-list');
   if (v.logs.length === 0) { container.innerHTML = '<p style="text-align:center;padding:40px;color:#999;">記録なし</p>'; return; }

@@ -239,6 +239,32 @@
           <h2 style="margin-bottom: 16px; color: var(--color-khaki-dark);">年別サマリー</h2>
           <div id="yearly-summary" style="overflow-x: auto;"></div>
         </div>
+
+        <div class="card">
+          <h2 style="margin-bottom: 16px; color: var(--color-khaki-dark);">季節・タイヤ別の燃費傾向</h2>
+          <div id="seasonal-empty" style="text-align:center;padding:20px;color:#999;display:none;">記録が少なく比較できません</div>
+          <div id="seasonal-content">
+            <div style="display: flex; gap: 16px; margin-bottom: 24px;">
+              <div style="flex: 1; background: var(--color-bg); border-radius: var(--radius-sm); padding: 14px;">
+                <div style="font-size: 0.75rem; color: var(--color-text-light); display: flex; align-items: center; gap: 4px;">
+                  <i data-lucide="snowflake" style="width: 12px;"></i> 冬タイヤ平均
+                </div>
+                <div class="stat-value" style="font-size: 1.5rem; margin-top: 4px;" id="winter-avg-mpg">--.-</div>
+                <div style="font-size: 0.75rem; color: var(--color-text-light);"><span id="winter-count">0</span>区間</div>
+              </div>
+              <div style="flex: 1; background: var(--color-bg); border-radius: var(--radius-sm); padding: 14px;">
+                <div style="font-size: 0.75rem; color: var(--color-text-light);">夏タイヤ平均</div>
+                <div class="stat-value" style="font-size: 1.5rem; margin-top: 4px;" id="summer-avg-mpg">--.-</div>
+                <div style="font-size: 0.75rem; color: var(--color-text-light);"><span id="summer-count">0</span>区間</div>
+              </div>
+            </div>
+            <div class="card-title" style="margin-bottom: 8px;">月別平均燃費（全期間）</div>
+            <div style="height: 160px;">
+              <canvas id="monthlyChart"></canvas>
+            </div>
+          </div>
+        </div>
+
         <div class="card">
           <h2 style="margin-bottom: 24px; color: var(--color-khaki-dark);">給油履歴</h2>
           <div id="history-list"></div>
