@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sienta-tracker-v2';
+const CACHE_NAME = 'sienta-tracker-v3';
 const ASSETS = [
   'index.html',
   'styles.css',

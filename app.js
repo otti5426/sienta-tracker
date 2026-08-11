@@ -9,99 +9,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// --- Firebase Initialization ---
-const firebaseConfig = {
-  apiKey: "AIzaSyB3DS0hu-P7eEFESQGhTcuMURpO5rbhTTk",
-  authDomain: "sienta-tracker2.firebaseapp.com",
-  projectId: "sienta-tracker2",
-  storageBucket: "sienta-tracker2.firebasestorage.app",
-  messagingSenderId: "576622794850",
-  appId: "1:576622794850:web:666ab766cd3f2d33fa593b"
-};
-
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-const db = firebase.firestore();
-const auth = firebase.auth();
-let currentUser = null;
-let unsubscribeSnapshot = null;
-
-// --- Auth Logic ---
-document.getElementById('btn-login').addEventListener('click', () => {
-  try {
-    if (window.location.protocol === 'file:') {
-      alert('【重要】パソコン内のファイル（file://）からはセキュリティの都合上ログインできません。\\n公開URL（ https://otti5426.github.io/sienta-tracker/ ）から開いてください。');
-      return;
-    }
-    document.getElementById('login-loading').style.display = 'block';
-    
-    const provider = new firebase.auth.GoogleAuthProvider();
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    
-    if (isMobile) {
-      auth.signInWithRedirect(provider).catch(err => {
-        console.error(err);
-        alert('ログインに失敗しました: ' + err.message);
-        document.getElementById('login-loading').style.display = 'none';
-      });
-    } else {
-      auth.signInWithPopup(provider).catch(err => {
-        console.error(err);
-        if (err.code === 'auth/popup-blocked') {
-          alert('ブラウザのポップアップブロック機能によりログイン画面が開けませんでした。ブラウザの設定でポップアップを許可するか、URLバー右上のアイコンから許可してください。');
-        } else {
-          alert('ログインに失敗しました: ' + err.message);
-        }
-        document.getElementById('login-loading').style.display = 'none';
-      });
-    }
-  } catch (e) {
-    alert('予期せぬエラーが発生しました: ' + e.message);
-    document.getElementById('login-loading').style.display = 'none';
-  }
-});
-
-// Handle redirect result on load (for mobile)
-auth.getRedirectResult().catch(err => {
-  console.error(err);
-  // Optional: alert('ログインエラーが発生しました');
-});
-
-document.getElementById('btn-logout').addEventListener('click', () => {
-  if (confirm('ログアウトしますか？')) auth.signOut();
-});
-
-auth.onAuthStateChanged(user => {
-  if (user) {
-    currentUser = user;
-    document.getElementById('login-overlay').style.display = 'none';
-    document.getElementById('app').style.display = 'flex';
-    
-    // Subscribe to Firestore
-    if (unsubscribeSnapshot) unsubscribeSnapshot();
-    unsubscribeSnapshot = db.collection('users').doc(user.uid).onSnapshot(doc => {
-      if (doc.exists) {
-        state = doc.data();
-        localStorage.setItem('sienta_app_state', JSON.stringify(state));
-        updateUI();
-      } else {
-        // First login -> migrate existing local data to cloud
-        saveState();
-      }
-    });
-  } else {
-    currentUser = null;
-    document.getElementById('login-overlay').style.display = 'flex';
-    document.getElementById('app').style.display = 'none';
-    document.getElementById('login-loading').style.display = 'none';
-    if (unsubscribeSnapshot) {
-      unsubscribeSnapshot();
-      unsubscribeSnapshot = null;
-    }
-  }
-});
-
 // --- State Management ---
 let state = JSON.parse(localStorage.getItem('sienta_app_state')) || {
   activeVehicleId: 'v1',
@@ -129,9 +36,6 @@ let mpgChart = null;
 
 function saveState() {
   localStorage.setItem('sienta_app_state', JSON.stringify(state));
-  if (currentUser) {
-    db.collection('users').doc(currentUser.uid).set(state).catch(err => console.error('Error saving state:', err));
-  }
 }
 
 function getActiveVehicle() {
@@ -153,10 +57,6 @@ function hexToRgb(hex) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
 }
-
-// --- Initialization ---
-lucide.createIcons();
-updateUI();
 
 // --- Navigation ---
 const allNavItems = document.querySelectorAll('.nav-item, .sidebar-item');
@@ -367,11 +267,20 @@ function updateDashboard() {
   const color = v.themeColor || '#7A8B76';
 
   document.getElementById('latest-mpg').textContent = '--.-';
+  document.getElementById('mpg-diff').textContent = '--';
   document.getElementById('avg-mpg').textContent = '--.-';
   document.getElementById('avg-mpg-summary').textContent = '--.-';
   document.getElementById('total-distance').textContent = '0';
   document.getElementById('predicted-range').textContent = '--';
   document.getElementById('last-wash-days').textContent = '--';
+  document.getElementById('target-amount').textContent = '¥' + s.targetAmount.toLocaleString();
+  document.getElementById('recovered-amount').textContent = '¥0';
+  document.getElementById('recovery-percent').textContent = '0%';
+  document.getElementById('recovery-progress').style.width = '0%';
+  document.getElementById('recovery-progress').classList.remove('shimmer');
+  document.getElementById('eco-rank-icon').textContent = ECO_RANKS[0].icon;
+  document.getElementById('eco-rank-name').textContent = ECO_RANKS[0].name;
+  document.getElementById('eco-rank-name').style.color = ECO_RANKS[0].color;
   document.getElementById('reward-banner-container').innerHTML = '';
   document.getElementById('maintenance-alert-container').innerHTML = '';
 
@@ -386,6 +295,12 @@ function updateDashboard() {
   const last = processed[processed.length - 1];
   document.getElementById('latest-mpg').textContent = last.mpg ? last.mpg.toFixed(1) : '--.-';
   document.getElementById('total-distance').textContent = last.odo.toLocaleString();
+
+  const validMpgs = processed.filter(d => d.mpg !== null);
+  if (validMpgs.length > 1) {
+    const diff = validMpgs[validMpgs.length - 1].mpg - validMpgs[validMpgs.length - 2].mpg;
+    document.getElementById('mpg-diff').textContent = (diff >= 0 ? '+' : '') + diff.toFixed(1) + ' km/L';
+  }
 
   if (logs.length > 1) {
     const totalDist = last.odo - logs[0].odo;
@@ -490,3 +405,9 @@ function renderMaintenance() {
 
 document.getElementById('input-date').valueAsDate = new Date();
 document.getElementById('maint-date').valueAsDate = new Date();
+
+// --- Initialization ---
+// Must run last: relies on ECO_RANKS/calculateEcoRank/updateDashboard etc.
+// being fully declared, and on all event listeners above being attached first.
+lucide.createIcons();
+updateUI();
