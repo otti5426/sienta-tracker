@@ -169,40 +169,132 @@ document.querySelectorAll('.color-preset').forEach(preset => {
   });
 });
 
+// --- Fuel Log Edit/Delete ---
+let editingLogId = null;
+
+function startEditLog(id) {
+  const v = getActiveVehicle();
+  const log = v.logs.find(l => l.id === id);
+  if (!log) return;
+  editingLogId = id;
+  document.getElementById('input-date').value = log.date;
+  document.getElementById('input-odo').value = log.odo;
+  document.getElementById('input-liters').value = log.liters;
+  document.getElementById('input-price').value = log.price;
+  document.getElementById('input-full').checked = log.isFull;
+  document.getElementById('input-winter').checked = log.isWinter;
+  document.getElementById('fuel-form-title').textContent = '給油記録を編集';
+  document.getElementById('fuel-submit-btn').textContent = '更新する';
+  document.getElementById('fuel-edit-banner').style.display = 'flex';
+  document.querySelector('.sidebar-item[data-target="view-add"]').click();
+}
+
+function cancelEditLog() {
+  editingLogId = null;
+  document.getElementById('fuel-form').reset();
+  document.getElementById('input-date').valueAsDate = new Date();
+  document.getElementById('input-full').checked = true;
+  document.getElementById('fuel-form-title').textContent = '給油記録を入力';
+  document.getElementById('fuel-submit-btn').textContent = '記録を保存';
+  document.getElementById('fuel-edit-banner').style.display = 'none';
+}
+document.getElementById('fuel-edit-cancel').addEventListener('click', cancelEditLog);
+
+window.editLog = (id) => startEditLog(id);
+window.deleteLog = (id) => {
+  if (confirm('この給油記録を削除しますか？')) {
+    const v = getActiveVehicle();
+    v.logs = v.logs.filter(l => l.id !== id);
+    saveState();
+    renderHistory();
+    updateDashboard();
+  }
+};
+
 document.getElementById('fuel-form').addEventListener('submit', (e) => {
   e.preventDefault();
   const v = getActiveVehicle();
-  v.logs.push({
-    id: Date.now().toString(),
+  const entry = {
     date: document.getElementById('input-date').value,
     odo: parseFloat(document.getElementById('input-odo').value),
     liters: parseFloat(document.getElementById('input-liters').value),
     price: parseInt(document.getElementById('input-price').value),
     isFull: document.getElementById('input-full').checked,
     isWinter: document.getElementById('input-winter').checked
-  });
+  };
+  const wasEditing = !!editingLogId;
+  if (wasEditing) {
+    const idx = v.logs.findIndex(l => l.id === editingLogId);
+    if (idx !== -1) v.logs[idx] = { ...v.logs[idx], ...entry };
+  } else {
+    v.logs.push({ id: Date.now().toString(), ...entry });
+  }
   v.logs.sort((a,b) => new Date(a.date) - new Date(b.date));
   saveState();
-  document.getElementById('fuel-form').reset();
-  document.getElementById('input-date').valueAsDate = new Date();
-  alert('記録しました');
+  cancelEditLog();
+  alert(wasEditing ? '更新しました' : '記録しました');
   document.querySelector('.sidebar-item[data-target="view-dashboard"]').click();
 });
+
+// --- Maintenance Edit/Delete ---
+let editingMaintId = null;
+
+function startEditMaint(id) {
+  const v = getActiveVehicle();
+  const m = v.maintenance.find(x => x.id === id);
+  if (!m) return;
+  editingMaintId = id;
+  document.getElementById('maint-category').value = m.category;
+  document.getElementById('maint-date').value = m.date;
+  document.getElementById('maint-price').value = m.price || '';
+  document.getElementById('maint-note').value = m.note || '';
+  document.getElementById('maint-form-title').textContent = 'メンテナンス記録を編集';
+  document.getElementById('maint-submit-btn').textContent = '更新する';
+  document.getElementById('maint-edit-banner').style.display = 'flex';
+  document.querySelector('.sidebar-item[data-target="view-maintenance"]').click();
+}
+
+function cancelEditMaint() {
+  editingMaintId = null;
+  document.getElementById('maintenance-form').reset();
+  document.getElementById('maint-date').valueAsDate = new Date();
+  document.getElementById('maint-form-title').textContent = 'メンテナンス記録';
+  document.getElementById('maint-submit-btn').textContent = 'メンテナンスを記録';
+  document.getElementById('maint-edit-banner').style.display = 'none';
+}
+document.getElementById('maint-edit-cancel').addEventListener('click', cancelEditMaint);
+
+window.editMaint = (id) => startEditMaint(id);
+window.deleteMaint = (id) => {
+  if (confirm('この記録を削除しますか？')) {
+    const v = getActiveVehicle();
+    v.maintenance = v.maintenance.filter(m => m.id !== id);
+    saveState();
+    renderMaintenance();
+    updateDashboard();
+  }
+};
 
 document.getElementById('maintenance-form').addEventListener('submit', (e) => {
   e.preventDefault();
   const v = getActiveVehicle();
-  v.maintenance.push({
-    id: Date.now().toString(),
+  const entry = {
     category: document.getElementById('maint-category').value,
     date: document.getElementById('maint-date').value,
+    price: parseInt(document.getElementById('maint-price').value) || 0,
     note: document.getElementById('maint-note').value
-  });
+  };
+  const wasEditing = !!editingMaintId;
+  if (wasEditing) {
+    const idx = v.maintenance.findIndex(m => m.id === editingMaintId);
+    if (idx !== -1) v.maintenance[idx] = { ...v.maintenance[idx], ...entry };
+  } else {
+    v.maintenance.push({ id: Date.now().toString(), ...entry });
+  }
   v.maintenance.sort((a,b) => new Date(b.date) - new Date(a.date));
   saveState();
-  document.getElementById('maintenance-form').reset();
-  document.getElementById('maint-date').valueAsDate = new Date();
-  alert('メンテナンスを記録しました');
+  cancelEditMaint();
+  alert(wasEditing ? '更新しました' : 'メンテナンスを記録しました');
   renderMaintenance();
   updateDashboard();
 });
@@ -247,6 +339,70 @@ function downloadFile(content, filename, contentType) {
   const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
 }
 
+// Minimal RFC4180-style parser: handles "quoted, with commas" fields (メモ欄用)
+function parseCsvLine(line) {
+  const result = [];
+  let cur = '', inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (line[i + 1] === '"') { cur += '"'; i++; }
+        else inQuotes = false;
+      } else cur += c;
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === ',') { result.push(cur); cur = ''; }
+      else cur += c;
+    }
+  }
+  result.push(cur);
+  return result;
+}
+
+// --- Maintenance CSV Features ---
+const MAINT_CAT_JP = { wash: '洗車', tire: 'タイヤ', inspection: '点検', other: 'その他' };
+const MAINT_CAT_FROM_JP = { '洗車': 'wash', 'タイヤ': 'tire', '点検': 'inspection', 'その他': 'other' };
+const MAINT_CSV_HEADER = "日付,区分,金額(円),メモ";
+
+document.getElementById('maint-export-csv-btn').addEventListener('click', () => {
+  const v = getActiveVehicle();
+  let csv = "\uFEFF" + MAINT_CSV_HEADER + "\n";
+  v.maintenance.forEach(m => {
+    const note = (m.note || '').replace(/"/g, '""');
+    csv += `${m.date},${MAINT_CAT_JP[m.category] || m.category},${m.price || 0},"${note}"\n`;
+  });
+  downloadFile(csv, `${v.name}_メンテナンス記録.csv`, 'text/csv');
+});
+document.getElementById('maint-import-csv-trigger').addEventListener('click', () => { document.getElementById('maint-import-csv-file').click(); });
+document.getElementById('maint-import-csv-file').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    const lines = event.target.result.split('\n');
+    const v = getActiveVehicle();
+    const newRecords = [];
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim().replace(/^\uFEFF/, ''); if (!line) continue;
+      const cols = parseCsvLine(line); if (cols.length < 2) continue;
+      newRecords.push({
+        id: (Date.now() + i).toString(),
+        date: cols[0],
+        category: MAINT_CAT_FROM_JP[cols[1]] || 'other',
+        price: parseInt(cols[2]) || 0,
+        note: cols[3] || ''
+      });
+    }
+    if (newRecords.length > 0 && confirm(`${newRecords.length}件を追加しますか？`)) {
+      v.maintenance = [...v.maintenance, ...newRecords];
+      v.maintenance.sort((a,b) => new Date(b.date) - new Date(a.date));
+      saveState(); renderMaintenance(); updateDashboard(); alert('完了');
+    }
+  };
+  reader.readAsText(file);
+});
+
 // --- Fuel Economy Calculation ---
 // 区間燃費は満タン給油から次の満タン給油まででしか出せない。途中の継ぎ足し給油の
 // 給油量も足し込まないと、その区間の燃費が実際より良く出てしまうため、
@@ -280,6 +436,18 @@ function calculateEcoRank(avgMpg) {
   return ECO_RANKS.filter(r => avgMpg >= r.threshold).pop();
 }
 
+// --- Tire Change Prediction ---
+// 冬タイヤ/夏タイヤの組み替えはだいたい半年おき（12月頃と4月頃）なので、
+// 最後の「タイヤ」区分の記録から6ヶ月後を次回の目安として出す。
+function predictNextTireChange(maintenance) {
+  const tireRecords = (maintenance || []).filter(m => m.category === 'tire');
+  if (tireRecords.length === 0) return null;
+  const lastDate = tireRecords.map(m => m.date).sort().pop();
+  const next = new Date(lastDate);
+  next.setMonth(next.getMonth() + 6);
+  return next;
+}
+
 // --- Dashboard Logic ---
 function updateDashboard() {
   const v = getActiveVehicle();
@@ -304,6 +472,22 @@ function updateDashboard() {
   document.getElementById('eco-rank-name').style.color = ECO_RANKS[0].color;
   document.getElementById('reward-banner-container').innerHTML = '';
   document.getElementById('maintenance-alert-container').innerHTML = '';
+  document.getElementById('next-tire-date').textContent = '--';
+  document.getElementById('next-tire-sub').textContent = '記録がありません';
+
+  // Last Wash / Next Tire Change: based on maintenance records only, so these must
+  // run even when there are zero fuel logs yet (i.e. before the early return below).
+  const lastWash = v.maintenance?.find(m => m.category === 'wash');
+  if (lastWash) {
+    const diff = Math.floor((new Date() - new Date(lastWash.date)) / (1000 * 60 * 60 * 24));
+    document.getElementById('last-wash-days').textContent = diff;
+  }
+  const nextTire = predictNextTireChange(v.maintenance);
+  if (nextTire) {
+    document.getElementById('next-tire-date').textContent = nextTire.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' });
+    const daysUntil = Math.ceil((nextTire - new Date()) / (1000 * 60 * 60 * 24));
+    document.getElementById('next-tire-sub').textContent = daysUntil > 0 ? `あと約${daysUntil}日` : '時期を過ぎています';
+  }
 
   if (logs.length === 0) { if (mpgChart) mpgChart.destroy(); return; }
 
@@ -343,13 +527,6 @@ function updateDashboard() {
     document.getElementById('recovery-progress').style.width = Math.min(100, pct) + '%';
     document.getElementById('recovery-progress').classList.toggle('shimmer', pct >= 100);
     renderRewards(recovered, s.targetAmount);
-  }
-
-  // Last Wash
-  const lastWash = v.maintenance?.find(m => m.category === 'wash');
-  if (lastWash) {
-    const diff = Math.floor((new Date() - new Date(lastWash.date)) / (1000 * 60 * 60 * 24));
-    document.getElementById('last-wash-days').textContent = diff;
   }
 
   // Oil Change
@@ -400,10 +577,26 @@ function renderHistory() {
   if (v.logs.length === 0) { container.innerHTML = '<p style="text-align:center;padding:40px;color:#999;">記録なし</p>'; return; }
   const processed = computeMpg(v.logs);
   let html = '';
+  let lastYear = null;
   for (let i = processed.length - 1; i >= 0; i--) {
     const l = processed[i];
-    const mpg = l.mpg !== null ? l.mpg.toFixed(1) + ' km/L' : (l.isFull ? '--.- km/L' : '継ぎ足し');
-    html += `<div class="history-item"><div style="flex:1;"><div style="display:flex;align-items:center;gap:8px;"><span class="history-date">${new Date(l.date).toLocaleDateString('ja-JP')}</span>${l.isWinter ? '<span class="badge-winter"><i data-lucide="snowflake" style="width:12px"></i>冬タイヤ</span>' : ''}</div><div class="history-details">${l.odo.toLocaleString()} km | ${l.liters} L | ¥${l.price.toLocaleString()}</div></div><div class="history-mpg">${mpg}</div></div>`;
+    const year = l.date.slice(0, 4);
+    if (year !== lastYear) {
+      html += `<div class="history-year-header">${year}年</div>`;
+      lastYear = year;
+    }
+    const mpgHtml = l.mpg !== null
+      ? `<div class="history-mpg">${l.mpg.toFixed(1)} <small>km/L</small></div>`
+      : `<div class="history-mpg partial">${l.isFull ? '--.-' : '継ぎ足し'}</div>`;
+    const dateStr = new Date(l.date).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
+    html += `<div class="history-item" onclick="editLog('${l.id}')">
+      <div class="history-main">
+        <div class="history-date">${dateStr}<span class="history-odo">(${l.odo.toLocaleString()}km)</span>${l.isWinter ? ' <span class="badge-winter"><i data-lucide="snowflake" style="width:11px"></i>冬</span>' : ''}</div>
+        <div class="history-details">${l.liters.toFixed(2)}L・¥${l.price.toLocaleString()}${!l.isFull ? '・継ぎ足し' : ''}</div>
+      </div>
+      <div class="history-mpg-col">${mpgHtml}</div>
+      <button class="history-delete" onclick="event.stopPropagation(); deleteLog('${l.id}')" title="削除"><i data-lucide="trash-2" style="width:16px"></i></button>
+    </div>`;
   }
   container.innerHTML = html;
   lucide.createIcons();
@@ -414,11 +607,22 @@ function renderMaintenance() {
   const container = document.getElementById('maintenance-list');
   if (!v.maintenance || v.maintenance.length === 0) { container.innerHTML = '<p style="text-align:center;padding:20px;color:#999;">記録なし</p>'; return; }
   let html = '';
-  const catNames = { wash: '洗車', tire: 'タイヤ', inspection: '点検', other: 'その他' };
   v.maintenance.forEach(m => {
-    html += `<div style="padding:12px; border-bottom:1px solid #eee;"><div style="font-weight:700;">${catNames[m.category]} <span style="font-size:0.75rem; font-weight:400; color:#999;">- ${m.date}</span></div><div style="font-size:0.875rem; color:#666;">${m.note || ''}</div></div>`;
+    html += `<div class="maint-item" onclick="editMaint('${m.id}')">
+      <div class="maint-main">
+        <div class="maint-title">${MAINT_CAT_JP[m.category] || m.category} <span class="maint-date">${m.date}</span></div>
+        ${m.note ? `<div class="maint-note">${m.note}</div>` : ''}
+      </div>
+      ${m.price ? `<div class="maint-price">¥${m.price.toLocaleString()}</div>` : ''}
+      <button class="history-delete" onclick="event.stopPropagation(); deleteMaint('${m.id}')" title="削除"><i data-lucide="trash-2" style="width:16px"></i></button>
+    </div>`;
   });
+  const totalCost = v.maintenance.reduce((sum, m) => sum + (m.price || 0), 0);
+  if (totalCost > 0) {
+    html += `<div class="maint-total"><span>累計整備費</span><span>¥${totalCost.toLocaleString()}</span></div>`;
+  }
   container.innerHTML = html;
+  lucide.createIcons();
 }
 
 document.getElementById('input-date').valueAsDate = new Date();

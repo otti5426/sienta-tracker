@@ -117,12 +117,6 @@
           </div>
 
           <div class="card">
-            <div class="card-title"><i data-lucide="map-pin"></i> 総走行距離</div>
-            <span class="stat-value" style="font-size: 1.75rem;" id="total-distance">0</span>
-            <span class="stat-unit">km</span>
-          </div>
-          
-          <div class="card">
             <div class="card-title"><i data-lucide="calendar"></i> 次回オイル交換</div>
             <div style="display: flex; align-items: baseline; gap: 4px;">
               <span class="stat-value" style="font-size: 1.75rem;" id="next-oil-change">--</span>
@@ -132,13 +126,31 @@
               残り: <span id="oil-remaining">--</span> km
             </div>
           </div>
+
+          <div class="card">
+            <div class="card-title"><i data-lucide="wrench"></i> 次回タイヤ交換目安</div>
+            <div style="display: flex; align-items: baseline; gap: 4px;">
+              <span class="stat-value" style="font-size: 1.25rem;" id="next-tire-date">--</span>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--color-text-light); margin-top: 4px;" id="next-tire-sub">記録がありません</div>
+          </div>
+
+          <div class="card">
+            <div class="card-title"><i data-lucide="map-pin"></i> 総走行距離</div>
+            <span class="stat-value" style="font-size: 1.75rem;" id="total-distance">0</span>
+            <span class="stat-unit">km</span>
+          </div>
         </div>
       </div>
 
       <!-- Add Log View -->
       <div id="view-add" class="view">
         <div class="card">
-          <h2 style="margin-bottom: 24px; color: var(--color-khaki-dark);">給油記録を入力</h2>
+          <h2 id="fuel-form-title" style="margin-bottom: 24px; color: var(--color-khaki-dark);">給油記録を入力</h2>
+          <div id="fuel-edit-banner" class="edit-banner" style="display: none;">
+            <span>この記録を編集中です</span>
+            <button type="button" id="fuel-edit-cancel">キャンセル</button>
+          </div>
           <form id="fuel-form" class="form-grid">
             <div class="form-group">
               <label class="form-label">日付</label>
@@ -167,7 +179,7 @@
               </div>
             </div>
             <div class="form-span-2">
-              <button type="submit" class="btn" style="width: 100%;">記録を保存</button>
+              <button type="submit" id="fuel-submit-btn" class="btn" style="width: 100%;">記録を保存</button>
             </div>
           </form>
         </div>
@@ -176,7 +188,11 @@
       <!-- Maintenance View -->
       <div id="view-maintenance" class="view">
         <div class="card">
-          <h2 style="margin-bottom: 24px; color: var(--color-khaki-dark);">メンテナンス記録</h2>
+          <h2 id="maint-form-title" style="margin-bottom: 24px; color: var(--color-khaki-dark);">メンテナンス記録</h2>
+          <div id="maint-edit-banner" class="edit-banner" style="display: none;">
+            <span>この記録を編集中です</span>
+            <button type="button" id="maint-edit-cancel">キャンセル</button>
+          </div>
           <form id="maintenance-form" class="form-grid">
             <div class="form-group">
               <label class="form-label">作業内容</label>
@@ -191,18 +207,29 @@
               <label class="form-label">日付</label>
               <input type="date" id="maint-date" class="form-input" required>
             </div>
+            <div class="form-group">
+              <label class="form-label">金額 (円)</label>
+              <input type="number" id="maint-price" class="form-input" placeholder="0">
+            </div>
             <div class="form-group form-span-2">
               <label class="form-label">メモ</label>
               <input type="text" id="maint-note" class="form-input" placeholder="例: 手洗い洗車、撥水コート">
             </div>
             <div class="form-span-2">
-              <button type="submit" class="btn" style="width: 100%;">メンテナンスを記録</button>
+              <button type="submit" id="maint-submit-btn" class="btn" style="width: 100%;">メンテナンスを記録</button>
             </div>
           </form>
         </div>
         <div class="card">
-          <h2 style="margin-bottom: 16px; color: var(--color-khaki-dark);">作業履歴</h2>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 12px; flex-wrap: wrap;">
+            <h2 style="color: var(--color-khaki-dark);">作業履歴</h2>
+            <div style="display: flex; gap: 8px;">
+              <button id="maint-export-csv-btn" class="btn" style="background: white; color: var(--color-text); border: 1px solid #ddd; font-size: 0.8125rem; padding: 8px 14px;">CSV出力</button>
+              <button id="maint-import-csv-trigger" class="btn" style="background: white; color: var(--color-text); border: 1px solid #ddd; font-size: 0.8125rem; padding: 8px 14px;">CSV取込</button>
+            </div>
+          </div>
           <div id="maintenance-list"></div>
+          <input type="file" id="maint-import-csv-file" style="display: none;" accept=".csv">
         </div>
       </div>
 
