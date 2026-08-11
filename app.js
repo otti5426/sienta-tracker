@@ -22,7 +22,7 @@ let state = JSON.parse(localStorage.getItem('sienta_app_state')) || {
         baseMpg: 10.0,
         targetAmount: 350000,
         gasPrice: 160,
-        tankCapacity: 52,
+        tankCapacity: 36, // SIENTA ハイブリッドの燃料タンク容量
         oilInterval: 5000,
         lastOilChangeOdo: 0
       },
@@ -92,7 +92,7 @@ function updateUI() {
   document.getElementById('setting-base-mpg').value = vehicle.settings.baseMpg;
   document.getElementById('setting-target').value = vehicle.settings.targetAmount;
   document.getElementById('setting-gas-price').value = vehicle.settings.gasPrice;
-  document.getElementById('setting-tank-capacity').value = vehicle.settings.tankCapacity || 52;
+  document.getElementById('setting-tank-capacity').value = vehicle.settings.tankCapacity || 36;
   document.getElementById('setting-oil-interval').value = vehicle.settings.oilInterval;
   document.getElementById('setting-last-oil').value = vehicle.settings.lastOilChangeOdo;
 
@@ -247,6 +247,27 @@ function downloadFile(content, filename, contentType) {
   const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
 }
 
+// --- Fuel Economy Calculation ---
+// 区間燃費は満タン給油から次の満タン給油まででしか出せない。途中の継ぎ足し給油の
+// 給油量も足し込まないと、その区間の燃費が実際より良く出てしまうため、
+// 前回満タン以降の給油量を累計して距離を割る。
+function computeMpg(logs) {
+  let lastFullIdx = -1;
+  let litersSinceFull = 0;
+  return logs.map((l, i) => {
+    litersSinceFull += l.liters;
+    let mpg = null;
+    if (l.isFull) {
+      if (lastFullIdx >= 0 && litersSinceFull > 0) {
+        mpg = (l.odo - logs[lastFullIdx].odo) / litersSinceFull;
+      }
+      lastFullIdx = i;
+      litersSinceFull = 0;
+    }
+    return { ...l, mpg };
+  });
+}
+
 // --- Eco Rank Logic ---
 const ECO_RANKS = [
   { threshold: 0, name: "ECO BEGINNER", icon: "🌱", color: "#6b726a" },
@@ -286,14 +307,11 @@ function updateDashboard() {
 
   if (logs.length === 0) { if (mpgChart) mpgChart.destroy(); return; }
 
-  const processed = logs.map((l, i) => {
-    let mpg = null;
-    if (i > 0 && l.isFull) mpg = (l.odo - logs[i-1].odo) / l.liters;
-    return { ...l, mpg };
-  });
+  const processed = computeMpg(logs);
 
   const last = processed[processed.length - 1];
-  document.getElementById('latest-mpg').textContent = last.mpg ? last.mpg.toFixed(1) : '--.-';
+  const lastWithMpg = [...processed].reverse().find(p => p.mpg !== null);
+  document.getElementById('latest-mpg').textContent = lastWithMpg ? lastWithMpg.mpg.toFixed(1) : '--.-';
   document.getElementById('total-distance').textContent = last.odo.toLocaleString();
 
   const validMpgs = processed.filter(d => d.mpg !== null);
@@ -309,7 +327,7 @@ function updateDashboard() {
     const avgMpg = totalDist / totalL;
     document.getElementById('avg-mpg').textContent = avgMpg.toFixed(1);
     document.getElementById('avg-mpg-summary').textContent = avgMpg.toFixed(1);
-    document.getElementById('predicted-range').textContent = Math.round(avgMpg * (s.tankCapacity || 52));
+    document.getElementById('predicted-range').textContent = Math.round(avgMpg * (s.tankCapacity || 36));
     
     // Eco Rank
     const rank = calculateEcoRank(avgMpg);
@@ -380,11 +398,11 @@ function renderHistory() {
   const v = getActiveVehicle();
   const container = document.getElementById('history-list');
   if (v.logs.length === 0) { container.innerHTML = '<p style="text-align:center;padding:40px;color:#999;">記録なし</p>'; return; }
+  const processed = computeMpg(v.logs);
   let html = '';
-  for (let i = v.logs.length - 1; i >= 0; i--) {
-    const l = v.logs[i];
-    let mpg = '--.- km/L';
-    if (i > 0 && l.isFull) mpg = ((l.odo - v.logs[i-1].odo) / l.liters).toFixed(1) + ' km/L';
+  for (let i = processed.length - 1; i >= 0; i--) {
+    const l = processed[i];
+    const mpg = l.mpg !== null ? l.mpg.toFixed(1) + ' km/L' : (l.isFull ? '--.- km/L' : '継ぎ足し');
     html += `<div class="history-item"><div style="flex:1;"><div style="display:flex;align-items:center;gap:8px;"><span class="history-date">${new Date(l.date).toLocaleDateString('ja-JP')}</span>${l.isWinter ? '<span class="badge-winter"><i data-lucide="snowflake" style="width:12px"></i>冬タイヤ</span>' : ''}</div><div class="history-details">${l.odo.toLocaleString()} km | ${l.liters} L | ¥${l.price.toLocaleString()}</div></div><div class="history-mpg">${mpg}</div></div>`;
   }
   container.innerHTML = html;
