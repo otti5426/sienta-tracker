@@ -67,6 +67,16 @@ def new_id(seq):
     return str(int(dt.datetime.now().timestamp() * 1000) + seq)
 
 
+def norm_date(v):
+    """2026/8/15 や 2026.8.15 も 2026-08-15 に揃える（Excel保存対策）。"""
+    t = str(v).strip().replace("/", "-").replace(".", "-")
+    parts = t.split("-")
+    if len(parts) == 3 and all(p.strip().isdigit() for p in parts):
+        y, m, d = (p.strip() for p in parts)
+        return "%04d-%02d-%02d" % (int(y), int(m), int(d))
+    return t
+
+
 def read_rows(path):
     """CSV / JSON を (logs, maints) に正規化して返す。"""
     ext = os.path.splitext(path)[1].lower()
@@ -77,6 +87,8 @@ def read_rows(path):
         for v in d.get("vehicles", []):
             logs += v.get("logs", []) or []
             maints += v.get("maintenance", []) or []
+        for r in logs + maints:
+            r["date"] = norm_date(r.get("date", ""))
         return logs, maints
 
     with io.open(path, encoding="utf-8-sig", newline="") as f:
@@ -91,7 +103,7 @@ def read_rows(path):
             if len(r) < 4 or not r[0].strip():
                 continue
             logs.append({
-                "date": r[0].strip(),
+                "date": norm_date(r[0]),
                 "odo": float(r[1]),
                 "liters": float(r[2]),
                 "price": int(float(r[3])),
@@ -106,7 +118,7 @@ def read_rows(path):
             if len(r) < 2 or not r[0].strip():
                 continue
             maints.append({
-                "date": r[0].strip(),
+                "date": norm_date(r[0]),
                 "category": CAT_FROM_JP.get(r[1].strip(), "other"),
                 "price": int(float(r[2])) if len(r) > 2 and r[2].strip() else 0,
                 "note": r[3].strip() if len(r) > 3 else "",
@@ -128,10 +140,16 @@ def main():
     seen_logs = {log_key(l) for l in v["logs"]}
     seen_maints = {maint_key(m) for m in v["maintenance"]}
 
-    files = sorted(
+    candidates = sorted(
         f for f in os.listdir(INBOX)
         if os.path.splitext(f)[1].lower() in (".csv", ".json")
     )
+    files = []
+    for f in candidates:
+        if f.startswith("_"):
+            print("  [ひな形なのでスキップ] %s" % f)
+            continue
+        files.append(f)
     if not files:
         print("取込フォルダは空です。CSV か バックアップJSON を 取込/ に入れてから実行してください。")
         return 0
