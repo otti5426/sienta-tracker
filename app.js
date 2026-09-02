@@ -791,8 +791,89 @@ function renderMaintenance() {
 document.getElementById('input-date').valueAsDate = new Date();
 document.getElementById('maint-date').valueAsDate = new Date();
 
+// --- 自動同期（PCの取込フォルダ → data.json → アプリ）---
+// PC側で 取込/ にCSVを入れて「取り込む.bat」を実行すると data.json が更新され
+// GitHubへpushされる。アプリはそれを起動時に読み、差分だけ足し込む。
+// 端末側で直接入れた記録は消さない（追加のみ／削除は同期しない）。
+const SYNC_URL = 'data-05873f399d42.json';  // 公開リポジトリなので推測されにくい名前にしている
+const SYNC_STAMP_KEY = 'sienta_sync_last';
+
+function syncLogKey(l) { return `${l.date}|${Number(l.odo)}|${Number(l.liters)}`; }
+function syncMaintKey(m) { return `${m.date}|${m.category}|${Number(m.price) || 0}|${(m.note || '').trim()}`; }
+
+function mergeVehicleData(local, remote) {
+  let added = 0;
+  if (!local.logs) local.logs = [];
+  const seenLogs = new Set(local.logs.map(syncLogKey));
+  (remote.logs || []).forEach(l => {
+    const k = syncLogKey(l);
+    if (seenLogs.has(k)) return;
+    seenLogs.add(k);
+    local.logs.push({ ...l, id: l.id || (Date.now() + Math.floor(Math.random() * 100000)).toString() });
+    added++;
+  });
+  local.logs.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  if (!local.maintenance) local.maintenance = [];
+  const seenMaint = new Set(local.maintenance.map(syncMaintKey));
+  (remote.maintenance || []).forEach(m => {
+    const k = syncMaintKey(m);
+    if (seenMaint.has(k)) return;
+    seenMaint.add(k);
+    local.maintenance.push({ ...m, id: m.id || (Date.now() + Math.floor(Math.random() * 100000)).toString() });
+    added++;
+  });
+  local.maintenance.sort((a, b) => new Date(b.date) - new Date(a.date));
+  return added;
+}
+
+function setSyncStatus(text) {
+  const el = document.getElementById('sync-status');
+  if (el) el.textContent = text;
+}
+
+async function syncFromCloud(manual) {
+  setSyncStatus('同期中…');
+  try {
+    const res = await fetch(`${SYNC_URL}?t=${Date.now()}`, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const remote = await res.json();
+    if (!remote || !Array.isArray(remote.vehicles)) throw new Error('data.json の形式が不正');
+
+    let added = 0;
+    remote.vehicles.forEach(rv => {
+      const lv = state.vehicles.find(v => v.id === rv.id) || state.vehicles.find(v => v.name === rv.name);
+      if (!lv) {
+        state.vehicles.push(JSON.parse(JSON.stringify(rv)));
+        added += (rv.logs || []).length + (rv.maintenance || []).length;
+        return;
+      }
+      added += mergeVehicleData(lv, rv);
+    });
+
+    if (added > 0) {
+      saveState();
+      updateUI();
+      renderHistory();
+      renderMaintenance();
+    }
+    const stamp = new Date().toLocaleString('ja-JP');
+    localStorage.setItem(SYNC_STAMP_KEY, stamp);
+    setSyncStatus(added > 0 ? `${stamp}　新しい記録 ${added}件を取り込みました` : `${stamp}　最新の状態です`);
+    if (manual) alert(added > 0 ? `${added}件を取り込みました` : '新しい記録はありませんでした');
+  } catch (err) {
+    const last = localStorage.getItem(SYNC_STAMP_KEY);
+    setSyncStatus(`同期できませんでした（${err.message}）${last ? '／前回: ' + last : ''}`);
+    if (manual) alert('同期できませんでした: ' + err.message);
+  }
+}
+
+const syncNowBtn = document.getElementById('sync-now-btn');
+if (syncNowBtn) syncNowBtn.addEventListener('click', () => syncFromCloud(true));
+
 // --- Initialization ---
 // Must run last: relies on ECO_RANKS/calculateEcoRank/updateDashboard etc.
 // being fully declared, and on all event listeners above being attached first.
 lucide.createIcons();
 updateUI();
+syncFromCloud(false);

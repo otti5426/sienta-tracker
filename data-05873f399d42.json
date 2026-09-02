@@ -1,0 +1,363 @@
+{
+  "activeVehicleId": "v1",
+  "vehicles": [
+    {
+      "id": "v1",
+      "name": "SIENTA",
+      "sub": "URBAN KHAKI",
+      "themeColor": "#7A8B76",
+      "settings": {
+        "baseMpg": 10.0,
+        "targetAmount": 350000,
+        "gasPrice": 160,
+        "tankCapacity": 36,
+        "oilInterval": 5000,
+        "lastOilChangeOdo": 0
+      },
+      "logs": [
+        {
+          "id": "1786439980931",
+          "date": "2024-12-22",
+          "odo": 0,
+          "liters": 31,
+          "price": 5394,
+          "isFull": true,
+          "isWinter": true
+        },
+        {
+          "id": "1786439980932",
+          "date": "2025-01-12",
+          "odo": 696,
+          "liters": 34.36,
+          "price": 5532,
+          "isFull": true,
+          "isWinter": true
+        },
+        {
+          "id": "1786439980933",
+          "date": "2025-02-09",
+          "odo": 1100,
+          "liters": 27.66,
+          "price": 4536,
+          "isFull": true,
+          "isWinter": true
+        },
+        {
+          "id": "1786439980934",
+          "date": "2025-03-08",
+          "odo": 1566,
+          "liters": 32.15,
+          "price": 5240,
+          "isFull": true,
+          "isWinter": true
+        },
+        {
+          "id": "1786439980935",
+          "date": "2025-04-08",
+          "odo": 2129,
+          "liters": 30.83,
+          "price": 5179,
+          "isFull": true,
+          "isWinter": false
+        },
+        {
+          "id": "1786439980936",
+          "date": "2025-04-29",
+          "odo": 2687,
+          "liters": 25.21,
+          "price": 4286,
+          "isFull": true,
+          "isWinter": false
+        },
+        {
+          "id": "1786439980937",
+          "date": "2025-05-06",
+          "odo": 3389,
+          "liters": 10.01,
+          "price": 1752,
+          "isFull": false,
+          "isWinter": false
+        },
+        {
+          "id": "1786439980938",
+          "date": "2025-05-10",
+          "odo": 3527,
+          "liters": 31.29,
+          "price": 5038,
+          "isFull": true,
+          "isWinter": false
+        },
+        {
+          "id": "1786439980939",
+          "date": "2025-06-14",
+          "odo": 4089,
+          "liters": 31.47,
+          "price": 4658,
+          "isFull": true,
+          "isWinter": false
+        },
+        {
+          "id": "1786439980940",
+          "date": "2025-07-06",
+          "odo": 4598,
+          "liters": 32.33,
+          "price": 4946,
+          "isFull": true,
+          "isWinter": false
+        },
+        {
+          "id": "1786439980941",
+          "date": "2025-07-26",
+          "odo": 5133,
+          "liters": 34.44,
+          "price": 5338,
+          "isFull": true,
+          "isWinter": false
+        },
+        {
+          "id": "1786439980942",
+          "date": "2025-08-23",
+          "odo": 5600,
+          "liters": 28.2,
+          "price": 4456,
+          "isFull": true,
+          "isWinter": false
+        },
+        {
+          "id": "1786439980943",
+          "date": "2025-09-07",
+          "odo": 6163,
+          "liters": 31.1,
+          "price": 4914,
+          "isFull": true,
+          "isWinter": false
+        },
+        {
+          "id": "1786439980944",
+          "date": "2025-10-05",
+          "odo": 6726,
+          "liters": 31.09,
+          "price": 4943,
+          "isFull": true,
+          "isWinter": false
+        },
+        {
+          "id": "1786439980945",
+          "date": "2025-11-01",
+          "odo": 7542,
+          "liters": 27.95,
+          "price": 4360,
+          "isFull": false,
+          "isWinter": false
+        },
+        {
+          "id": "1786439980946",
+          "date": "2025-11-03",
+          "odo": 7926,
+          "liters": 32.05,
+          "price": 5000,
+          "isFull": true,
+          "isWinter": false
+        },
+        {
+          "id": "1786439980947",
+          "date": "2025-11-29",
+          "odo": 8524,
+          "liters": 30.01,
+          "price": 4381,
+          "isFull": true,
+          "isWinter": false
+        },
+        {
+          "id": "1786439980948",
+          "date": "2025-12-02",
+          "odo": 9143,
+          "liters": 27,
+          "price": 5184,
+          "isFull": false,
+          "isWinter": true
+        },
+        {
+          "id": "1786439980949",
+          "date": "2025-12-04",
+          "odo": 9740,
+          "liters": 15.74,
+          "price": 2408,
+          "isFull": false,
+          "isWinter": true
+        },
+        {
+          "id": "1786439980950",
+          "date": "2025-12-05",
+          "odo": 9812,
+          "liters": 28.85,
+          "price": 4414,
+          "isFull": true,
+          "isWinter": true
+        },
+        {
+          "id": "1786439980951",
+          "date": "2025-12-28",
+          "odo": 10205,
+          "liters": 28.73,
+          "price": 3850,
+          "isFull": false,
+          "isWinter": true
+        },
+        {
+          "id": "1786439980952",
+          "date": "2026-01-20",
+          "odo": 10685,
+          "liters": 28.82,
+          "price": 3862,
+          "isFull": true,
+          "isWinter": true
+        },
+        {
+          "id": "1786439980953",
+          "date": "2026-01-25",
+          "odo": 10767,
+          "liters": 9,
+          "price": 1207,
+          "isFull": false,
+          "isWinter": true
+        },
+        {
+          "id": "1786439980954",
+          "date": "2026-02-07",
+          "odo": 10992,
+          "liters": 14.28,
+          "price": 1956,
+          "isFull": false,
+          "isWinter": true
+        },
+        {
+          "id": "1786439980955",
+          "date": "2026-02-28",
+          "odo": 11361,
+          "liters": 18.59,
+          "price": 2603,
+          "isFull": true,
+          "isWinter": true
+        },
+        {
+          "id": "1786439980956",
+          "date": "2026-03-22",
+          "odo": 11861,
+          "liters": 27.13,
+          "price": 4205,
+          "isFull": true,
+          "isWinter": true
+        },
+        {
+          "id": "1786439980957",
+          "date": "2026-04-12",
+          "odo": 12143,
+          "liters": 13.42,
+          "price": 2000,
+          "isFull": true,
+          "isWinter": false
+        },
+        {
+          "id": "1786439980958",
+          "date": "2026-05-04",
+          "odo": 12594,
+          "liters": 23.33,
+          "price": 3523,
+          "isFull": false,
+          "isWinter": false
+        },
+        {
+          "id": "1786439980959",
+          "date": "2026-05-10",
+          "odo": 13550,
+          "liters": 29.13,
+          "price": 4595,
+          "isFull": true,
+          "isWinter": false
+        },
+        {
+          "id": "1786439980960",
+          "date": "2026-05-31",
+          "odo": 13856,
+          "liters": 30.12,
+          "price": 4518,
+          "isFull": false,
+          "isWinter": false
+        },
+        {
+          "id": "1786439980961",
+          "date": "2026-06-28",
+          "odo": 14415,
+          "liters": 25.68,
+          "price": 3929,
+          "isFull": true,
+          "isWinter": false
+        },
+        {
+          "id": "1786439980962",
+          "date": "2026-07-18",
+          "odo": 14799,
+          "liters": 24.89,
+          "price": 3783,
+          "isFull": true,
+          "isWinter": false
+        },
+        {
+          "id": "1786439980963",
+          "date": "2026-07-30",
+          "odo": 15257,
+          "liters": 25.21,
+          "price": 3756,
+          "isFull": true,
+          "isWinter": false
+        }
+      ],
+      "maintenance": [
+        {
+          "id": "1786439981915",
+          "date": "2026-04-13",
+          "category": "tire",
+          "price": 2200,
+          "note": "冬→夏タイヤ組み替え タイヤセンタートヨトミ 富山店"
+        },
+        {
+          "id": "1786439981914",
+          "date": "2025-12-01",
+          "category": "tire",
+          "price": 2200,
+          "note": "夏→冬タイヤ組み替え(2024/9購入のスタッドレス) タイヤセンタートヨトミ 富山店"
+        },
+        {
+          "id": "1786439981913",
+          "date": "2025-11-29",
+          "category": "wash",
+          "price": 1000,
+          "note": "洗車 カナショク セルフ富山婦中店"
+        },
+        {
+          "id": "1786439981912",
+          "date": "2025-04-06",
+          "category": "tire",
+          "price": 2800,
+          "note": "冬→夏タイヤ組み替え ENEOS-SS"
+        },
+        {
+          "id": "1786439981911",
+          "date": "2025-03-20",
+          "category": "wash",
+          "price": 1600,
+          "note": "洗車 オカモト富山婦中 (4件合算)"
+        },
+        {
+          "id": "1786439981910",
+          "date": "2024-09-21",
+          "category": "tire",
+          "price": 77000,
+          "note": "新品スタッドレス購入(中古アルミホイール+工賃込み) タイヤセンター豊富 富山店 ※納車日12/21に装着"
+        }
+      ]
+    }
+  ],
+  "updatedAt": "2026-09-02T21:06:33"
+}

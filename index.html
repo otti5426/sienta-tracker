@@ -328,6 +328,15 @@
         </div>
 
         <div class="card">
+          <h2 style="margin-bottom: 8px; color: var(--color-khaki-dark);">自動同期</h2>
+          <p style="font-size: 0.8125rem; color: var(--color-text-light); margin-bottom: 12px;">
+            PCの「取込」フォルダに入れた記録は、アプリを開いたときに自動で読み込まれます。すでにある記録は二重に入りません。
+          </p>
+          <div id="sync-status" style="font-size: 0.8125rem; color: var(--color-text-light); background: var(--color-bg); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px;">未同期</div>
+          <button id="sync-now-btn" class="btn" style="width: 100%; background: white; color: var(--color-text); border: 1px solid #ddd; font-size: 0.875rem;">今すぐ同期</button>
+        </div>
+
+        <div class="card">
           <h2 style="margin-bottom: 24px; color: var(--color-khaki-dark);">データ連携 (CSV)</h2>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
             <button id="export-csv-btn" class="btn" style="background: white; color: var(--color-text); border: 1px solid #ddd; font-size: 0.875rem;">CSVエクスポート</button>
