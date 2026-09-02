@@ -24,6 +24,8 @@ INBOX = os.path.join(ROOT, "取込")
 DONE = os.path.join(ROOT, "取込済み")
 BACKUP = os.path.join(ROOT, "バックアップ")
 TEMPLATES = os.path.join(INBOX, "_ひな形")
+LOG = os.path.join(ROOT, "取り込みログ.txt")
+NEWLINE = chr(10)
 
 CAT_FROM_JP = {"洗車": "wash", "タイヤ": "tire", "点検": "inspection", "その他": "other"}
 
@@ -254,13 +256,75 @@ def main():
         if total_logs == 0 and total_maints == 0:
             print("新しい記録が無いので push しません。")
             return 0
-        subprocess.check_call(["git", "add", DATA_NAME], cwd=ROOT)
-        msg = "data: add %d fuel / %d maintenance records\n\nCo-Authored-By: Claude Opus 5 <noreply@anthropic.com>" % (total_logs, total_maints)
-        subprocess.check_call(["git", "commit", "-m", msg], cwd=ROOT)
-        subprocess.check_call(["git", "push"], cwd=ROOT)
+        # ログオン直後などネットワークが無い時に落ちないようにする。
+        # commit だけ残しておけば、次回の実行でまとめて push される。
+        msg = ("data: add %d fuel / %d maintenance records" % (total_logs, total_maints)
+               + NEWLINE + NEWLINE
+               + "Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>")
+        try:
+            subprocess.check_call(["git", "add", DATA_NAME], cwd=ROOT)
+            subprocess.check_call(["git", "commit", "-m", msg], cwd=ROOT)
+        except subprocess.CalledProcessError as e:
+            print("*** commit に失敗しました: %s" % e)
+            return 1
+        try:
+            subprocess.check_call(["git", "push"], cwd=ROOT)
+        except subprocess.CalledProcessError as e:
+            print("*** push に失敗しました（次回の実行でまとめて送られます）: %s" % e)
+            return 1
         print("GitHubへ反映しました。スマホでアプリを開くと取り込まれます。")
     return 0
 
 
+class Tee(object):
+    """画面とログファイルの両方へ書く。"""
+
+    def __init__(self, stream, path):
+        self.stream = stream
+        self.log = io.open(path, "a", encoding="utf-8", newline=NEWLINE)
+
+    def write(self, text):
+        if self.stream is not None:
+            try:
+                self.stream.write(text)
+            except Exception:
+                pass
+        self.log.write(text)
+
+    def flush(self):
+        if self.stream is not None:
+            try:
+                self.stream.flush()
+            except Exception:
+                pass
+        self.log.flush()
+
+
+def trim_log(path, keep=400):
+    """ログが際限なく伸びないように末尾だけ残す。"""
+    try:
+        lines = io.open(path, encoding="utf-8").readlines()
+    except Exception:
+        return
+    if len(lines) > keep * 2:
+        io.open(path, "w", encoding="utf-8", newline=NEWLINE).writelines(lines[-keep:])
+
+
 if __name__ == "__main__":
+    if "--log" in sys.argv:
+        # タスクスケジューラからの無人実行。pythonw では stdout が None になる
+        trim_log(LOG)
+        tee = Tee(sys.stdout, LOG)
+        sys.stdout = tee
+        sys.stderr = tee
+        print("")
+        print("===== %s =====" % dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        try:
+            code = main()
+        except Exception:
+            import traceback
+            traceback.print_exc()
+            code = 1
+        tee.flush()
+        sys.exit(code)
     sys.exit(main())
