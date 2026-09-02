@@ -23,6 +23,7 @@ DATA = os.path.join(ROOT, DATA_NAME)
 INBOX = os.path.join(ROOT, "取込")
 DONE = os.path.join(ROOT, "取込済み")
 BACKUP = os.path.join(ROOT, "バックアップ")
+TEMPLATES = os.path.join(INBOX, "_ひな形")
 
 CAT_FROM_JP = {"洗車": "wash", "タイヤ": "tire", "点検": "inspection", "その他": "other"}
 
@@ -128,6 +129,37 @@ def read_rows(path):
     raise ValueError("ヘッダーから種類を判別できません: " + header)
 
 
+def reset_template(path):
+    """ひな形は消さずに、ヘッダー行だけ残して空にする（次回もそのまま使える）。"""
+    with io.open(path, encoding="utf-8-sig", newline="") as f:
+        header = f.readline()
+    if not header.strip():
+        return
+    if not header.endswith(chr(10)):
+        header += chr(13) + chr(10)
+    with io.open(path, "w", encoding="utf-8-sig", newline="") as f:
+        f.write(header)
+
+
+def collect_targets():
+    """(パス, ひな形か) の一覧。取込/ 直下と 取込/_ひな形/ の両方を見る。"""
+    targets = []
+    for name in sorted(os.listdir(INBOX)):
+        if os.path.splitext(name)[1].lower() not in (".csv", ".json"):
+            continue
+        if name.startswith("_"):
+            print("  [記入例なのでスキップ] %s" % name)
+            continue
+        targets.append((os.path.join(INBOX, name), False))
+
+    if os.path.isdir(TEMPLATES):
+        for name in sorted(os.listdir(TEMPLATES)):
+            if os.path.splitext(name)[1].lower() != ".csv" or name.startswith("_"):
+                continue
+            targets.append((os.path.join(TEMPLATES, name), True))
+    return targets
+
+
 def main():
     do_push = "--push" in sys.argv
     for d in (INBOX, DONE, BACKUP):
@@ -140,29 +172,27 @@ def main():
     seen_logs = {log_key(l) for l in v["logs"]}
     seen_maints = {maint_key(m) for m in v["maintenance"]}
 
-    candidates = sorted(
-        f for f in os.listdir(INBOX)
-        if os.path.splitext(f)[1].lower() in (".csv", ".json")
-    )
-    files = []
-    for f in candidates:
-        if f.startswith("_"):
-            print("  [ひな形なのでスキップ] %s" % f)
-            continue
-        files.append(f)
-    if not files:
-        print("取込フォルダは空です。CSV か バックアップJSON を 取込/ に入れてから実行してください。")
+    targets = collect_targets()
+    if not targets:
+        print("取り込むものがありません。")
+        print("ひな形（取込/_ひな形/ の給油ログ.csv など）に直接書いても取り込めます。")
         return 0
 
     total_logs = total_maints = 0
     seq = 0
     processed = []
-    for name in files:
-        path = os.path.join(INBOX, name)
+    for path, is_template in targets:
+        name = os.path.basename(path)
+        label = "ひな形/" + name if is_template else name
         try:
             logs, maints = read_rows(path)
         except Exception as e:
-            print("  [スキップ] %s : %s" % (name, e))
+            print("  [スキップ] %s : %s" % (label, e))
+            continue
+        if not logs and not maints:
+            # ひな形が空のまま（ヘッダーだけ）なら黙って飛ばす
+            if not is_template:
+                print("  %s : 記録が入っていません" % label)
             continue
         add_l = add_m = 0
         for l in logs:
@@ -185,10 +215,15 @@ def main():
                 "price": int(m.get("price") or 0), "note": m.get("note") or "",
             })
             add_m += 1
-        print("  %s : 給油 +%d / 整備 +%d" % (name, add_l, add_m))
+        print("  %s : 給油 +%d / 整備 +%d" % (label, add_l, add_m))
         total_logs += add_l
         total_maints += add_m
-        processed.append(path)
+        processed.append((path, is_template))
+
+    if not processed:
+        print("")
+        print("新しい記録はありませんでした。")
+        return 0
 
     v["logs"].sort(key=lambda l: (l["date"], l["odo"]))
     v["maintenance"].sort(key=lambda m: m["date"], reverse=True)
@@ -202,8 +237,14 @@ def main():
     shutil.copy2(DATA, os.path.join(BACKUP, "data_%s.json" % today))
 
     stamp = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
-    for path in processed:
-        shutil.move(path, os.path.join(DONE, "%s_%s" % (stamp, os.path.basename(path))))
+    for path, is_template in processed:
+        dest = os.path.join(DONE, "%s_%s" % (stamp, os.path.basename(path)))
+        if is_template:
+            # ひな形は残す。控えを取込済みに置いてから中身だけ空にする
+            shutil.copy2(path, dest)
+            reset_template(path)
+        else:
+            shutil.move(path, dest)
 
     print("")
     print("合計: 給油 +%d件 / 整備 +%d件" % (total_logs, total_maints))
